@@ -1,0 +1,19 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "Julia and Quarto Website Template"
+  navbar:
+    search: true
+    left:
+      - href: index.qmd
+        text: Home
+      - about.qmd
+      - plots.ipynb
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true

@@ -10,11 +10,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-  TIMEOUT: 600
-
 jobs:
   docker:
     runs-on: ubuntu-latest
@@ -24,7 +19,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           file: .ci/Dockerfile
-          tags: ${{ env.IMAGE_NAME }}:test
+          tags: myimage:test
           outputs: type=docker,dest=/tmp/myimage.tar
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -43,6 +38,8 @@ jobs:
         notebook:
           - plots
     runs-on: ubuntu-latest
+    env:
+      TIMEOUT: 600
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -58,7 +55,7 @@ jobs:
           docker run
           -v ${{ github.workspace }}:/work
           -e JULIA_NUM_THREADS=auto
-          ${{ env.IMAGE_NAME }}:test
+          myimage:test
           jupyter nbconvert --to notebook --ExecutePreprocessor.timeout=${{ env.TIMEOUT }} --execute --inplace
           /work/docs/${{ matrix.notebook }}.ipynb
       - name: Upload Notebook
@@ -67,7 +64,7 @@ jobs:
           name: ${{ matrix.notebook }}
           path: docs/${{ matrix.notebook }}.ipynb
 
-  jupyter-book:
+  quarto:
     needs: execute
     runs-on: ubuntu-latest
     # store success output flag for the ci job
@@ -76,18 +73,19 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-      - run: pip install jupyter-book
       - name: Download notebooks
         uses: actions/download-artifact@v3
         with:
           path: out/
       - name: Move notebooks
         run: find out/ -type f -iname '*.ipynb' -exec mv -t docs/ {} +
-      - name: Build website
-        run: jupyter-book build docs/ -W -v
+      - name: Setup Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+      - name: Render Quarto Project
+        uses: quarto-dev/quarto-actions/render@v2
+        with:
+          to: html
+          path: docs
       - name: Set output flag
         id: setoutput
         run: echo "success=true" >> $GITHUB_OUTPUT
@@ -95,22 +93,23 @@ jobs:
         id: pages
         uses: actions/configure-pages@v2
       - name: Upload page artifact
+        if: github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v1
         with:
-          path: docs/_build/html
+          path: docs/_site
 
   # This job is for GitHub status check
   # https://brunoscheufler.com/blog/2022-04-09-the-required-github-status-check-that-wasnt
   ci:
-    needs: [execute, jupyter-book]
+    needs: [execute, quarto]
     runs-on: ubuntu-latest
     if: always() # always run, so we never skip the check
     steps:
-      # pass step only when output of previous jupyter-book job is set
-      # in case at least one of the execution fails, jupyter-book is skipped
+      # pass step only when output of previous quarto job is set
+      # in case at least one of the execution fails, quarto is skipped
       # and the output will not be set, which will then cause the ci job to fail
       - run: |
-          passed="${{ needs.jupyter-book.outputs.success }}"
+          passed="${{ needs.quarto.outputs.success }}"
           if [[ $passed == "true" ]]; then
             echo "Tests passed"
             exit 0
@@ -121,7 +120,7 @@ jobs:
 
   # Deployment job
   deploy:
-    needs: jupyter-book
+    needs: quarto
     if: github.ref == 'refs/heads/main'
     # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
     permissions:
