@@ -1,27 +1,23 @@
-# Jupyter book template for Julia Jupyter notebooks
+# Template repository for Julia Quarto notebooks
 
-## Jupyter Book
+## Quarto
 
-[Jupyter book](https://jupyterbook.org/index.html) creates a beautiful website from Markdown and Jupyter Notebook files.
+[Quarto®](https://quarto.org/) is an open-source scientific and technical publishing system built on Pandoc. Here we use quarto to render and publish Julia Jupyter notebooks as a website.
 
 ## CI/CD
 
-GitHub actions and GitLab CI/CD are setup to build and publish the website whenever changes are committed.
+Whan changes are pushed to the GitHub repo, GitHub actions will build and publish the website. Execution results are executed on the fly so you can push notebooks with empty output cells and obtain the execution results.
 
-- Execution results are executed on the fly so you can push notebooks with empty output cells and received the results once the pipeline is completed.
-- Execution results are cached so only the edited notebooks would be executed to save CI time.
-
-### On GitHub
-
-Click `Use this template` green button to copy this repository to your place.
-
+To enable GitHub pages for the generated website:
 Open your repository settings => Pages => GitHub Pages
 => Build and deployment => Source, Select `GitHub actions`
 
+## Auto update Julia dependencies
 
-## Auto update
+This example repository can periodically update Julia dependencies and make a PR if the notebooks are executed successfully.
 
-This template is able to periodically update Julia dependencies and make a MR (PR) if the docker images and notebooks are built successfully.
+[See the instructions](https://github.com/peter-evans/create-pull-request/blob/main/docs/concepts-guidelines.md#triggering-further-workflow-runs) for how to trigger CI workflows in a PR. In this repo, I use a custom [GitHub APP](https://github.com/peter-evans/create-pull-request/blob/main/docs/concepts-guidelines.md#authenticating-with-github-app-generated-tokens) to generate a temporary token.
 
-- For GitHub: [See the instructions](https://github.com/peter-evans/create-pull-request/blob/main/docs/concepts-guidelines.md#triggering-further-workflow-runs) in `create pull request` action about how to trigger further CI workflows.
-- For GitLab: Requires `GIT_PUSH_TOKEN` [CI/CD variable](https://docs.gitlab.com/ee/ci/variables/index.html), a PAT with `write_repo` access.
+## Renovate
+
+Other dependency updates (e.g. GitHub actions, python packages) are handled by the [Renovate bot](https://docs.renovatebot.com/). Please enable [Renovate Github APP](https://github.com/apps/renovate) to use it.
